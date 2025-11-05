@@ -1,0 +1,96 @@
+# Dependencies - npm installed libraries
+node_modules/
+jspm_packages/
+bower_components/
+
+# Build outputs - generated files
+dist/
+dist-ssr/
+build/
+.output/
+.nuxt/
+.next/
+out/
+*.local
+
+# Logs - debug and error logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+__snapshots__/
+__screenshots__/
+/cypress/videos/
+/cypress/screenshots/
+
+# Cache directories
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# Environment variables - may contain secrets
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*~
+.project
+.settings/
+.classpath
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Large media files (optional - uncomment if needed)
+# *.mp4
+# *.mov
+# *.avi
+# *.mkv
+# *.glb
+# *.gltf
+# *.fbx
+# *.obj
+# *.blend
+
+# Lock files (keep one, ignore others)
+# Uncomment the ones you don't use:
+# yarn.lock
+# pnpm-lock.yaml
+# If using npm, keep package-lock.json
