@@ -5,7 +5,30 @@
     </div>
     <div class="resizer" @mousedown="startResize" :class="{ resizing: isResizing }"></div>
     <div class="guide-container" :style="{ width: guideWidth + '%' }">
-      <slot name="guide"></slot>
+      <div class="view-toggle">
+        <button
+          @click="showGuide = true"
+          :class="{ active: showGuide }"
+          class="toggle-button"
+        >
+          Guide
+        </button>
+        <button
+          @click="showGuide = false"
+          :class="{ active: !showGuide }"
+          class="toggle-button"
+        >
+          Code
+        </button>
+      </div>
+      <div class="content-wrapper">
+        <div v-show="showGuide" class="guide-content">
+          <slot name="guide"></slot>
+        </div>
+        <div v-show="!showGuide" class="code-content">
+          <slot name="code"></slot>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -16,6 +39,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 const canvasWidth = ref(35)
 const guideWidth = ref(65)
 const isResizing = ref(false)
+const showGuide = ref(true)
 
 const startResize = (e) => {
   isResizing.value = true
@@ -101,12 +125,65 @@ onBeforeUnmount(() => {
 }
 
 .guide-container {
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   background-color: #f5f5f5;
   min-width: 0;
   height: 100%;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  flex-shrink: 0;
+}
+
+.toggle-button {
+  padding: 0.5rem 1.5rem;
+  background-color: #f0f0f0;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  font-weight: 500;
+}
+
+.toggle-button:hover {
+  background-color: #e0e0e0;
+}
+
+.toggle-button.active {
+  background-color: #42b883;
+  color: white;
+  border-color: #42b883;
+}
+
+.content-wrapper {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  min-height: 0;
+}
+
+.guide-content,
+.code-content {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.guide-content {
+  padding: 2rem;
+}
+
+.code-content {
+  padding: 0;
 }
 
 @media (max-width: 768px) {

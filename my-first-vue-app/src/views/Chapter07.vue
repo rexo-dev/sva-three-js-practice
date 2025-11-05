@@ -3,7 +3,9 @@ import { onMounted, onBeforeUnmount, ref } from 'vue'
 import * as THREE from 'three'
 import ChapterLayout from '../components/ChapterLayout.vue'
 import MarkdownViewer from '../components/MarkdownViewer.vue'
+import CodeViewer from '../components/CodeViewer.vue'
 import guideContent from '../guides/chapter-07-guide.md?raw'
+import sourceCode from './Chapter07.vue?raw'
 
 const canvasRef = ref(null)
 let scene, camera, renderer, clock
@@ -128,6 +130,9 @@ function animate() {
     </template>
     <template #guide>
       <MarkdownViewer :content="guideContent" />
+    </template>
+    <template #code>
+      <CodeViewer :code="sourceCode" title="Chapter 7: Animation - Full Source Code" />
     </template>
   </ChapterLayout>
 </template>

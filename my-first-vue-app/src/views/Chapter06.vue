@@ -4,7 +4,9 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import ChapterLayout from '../components/ChapterLayout.vue'
 import MarkdownViewer from '../components/MarkdownViewer.vue'
+import CodeViewer from '../components/CodeViewer.vue'
 import guideContent from '../guides/chapter-06-guide.md?raw'
+import sourceCode from './Chapter06.vue?raw'
 
 const canvasRef = ref(null)
 let scene, camera, renderer, controls
@@ -107,6 +109,9 @@ function animate() {
     </template>
     <template #guide>
       <MarkdownViewer :content="guideContent" />
+    </template>
+    <template #code>
+      <CodeViewer :code="sourceCode" title="Chapter 6: Camera Controls - Full Source Code" />
     </template>
   </ChapterLayout>
 </template>
