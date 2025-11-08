@@ -13,6 +13,14 @@
         </transition>
       </div>
       <div class="toolbar-right">
+        <button
+          v-if="showSnippets"
+          @click="$emit('toggle-snippets')"
+          class="toolbar-button"
+          title="Browse Code Snippets"
+        >
+          <span class="icon">📚</span> Snippets
+        </button>
         <button @click="formatCode" class="toolbar-button" title="Format Code (Shift+Alt+F)">
           <span class="icon">⚡</span> Format
         </button>
@@ -56,10 +64,14 @@ const props = defineProps({
   showSaveStatus: {
     type: Boolean,
     default: true
+  },
+  showSnippets: {
+    type: Boolean,
+    default: true
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'run', 'reset'])
+const emit = defineEmits(['update:modelValue', 'run', 'reset', 'toggle-snippets'])
 
 const editorContainer = ref(null)
 const saveStatus = ref('saved') // 'saved', 'saving', 'unsaved'
@@ -177,6 +189,34 @@ const formatCode = () => {
     editor.getAction('editor.action.formatDocument').run()
   }
 }
+
+/**
+ * Insert text at current cursor position
+ */
+const insertTextAtCursor = (text) => {
+  if (editor) {
+    const selection = editor.getSelection()
+    const range = new monaco.Range(
+      selection.startLineNumber,
+      selection.startColumn,
+      selection.endLineNumber,
+      selection.endColumn
+    )
+
+    const op = {
+      range: range,
+      text: text,
+      forceMoveMarkers: true
+    }
+
+    editor.executeEdits('insert-snippet', [op])
+    editor.focus()
+  }
+}
+
+defineExpose({
+  insertTextAtCursor
+})
 </script>
 
 <style scoped>

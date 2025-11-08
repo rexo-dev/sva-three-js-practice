@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import CodeEditor from '../components/editor/CodeEditor.vue'
 import InteractiveCanvas from '../components/editor/InteractiveCanvas.vue'
+import SnippetBrowser from '../components/editor/SnippetBrowser.vue'
 import ChapterLayout from '../components/ChapterLayout.vue'
 import MarkdownViewer from '../components/MarkdownViewer.vue'
 import { useCodePersistence } from '../composables/useCodePersistence'
@@ -157,6 +158,8 @@ Happy coding! 🚀
 
 // Reactive state
 const canvasRef = ref(null)
+const editorRef = ref(null)
+const showSnippets = ref(false)
 
 const handleRun = () => {
   if (canvasRef.value) {
@@ -177,6 +180,23 @@ const handleError = (error) => {
 
 const handleSuccess = () => {
   console.log('Code executed successfully!')
+}
+
+const handleToggleSnippets = () => {
+  showSnippets.value = !showSnippets.value
+}
+
+const handleInsertSnippet = (snippet) => {
+  if (editorRef.value) {
+    // Add newlines for better formatting
+    const textToInsert = '\n' + snippet.code + '\n'
+    editorRef.value.insertTextAtCursor(textToInsert)
+  }
+  showSnippets.value = false
+}
+
+const handleSnippetCopied = (snippet) => {
+  console.log('Snippet copied:', snippet.label)
 }
 </script>
 
@@ -200,16 +220,62 @@ const handleSuccess = () => {
 
     <!-- Right side Code tab: Interactive Editor (replaces static code view) -->
     <template #code>
-      <CodeEditor
-        v-model="userCode"
-        title="Interactive Code Editor - Edit & Run!"
-        @run="handleRun"
-        @reset="handleReset"
-      />
+      <div class="editor-wrapper">
+        <CodeEditor
+          ref="editorRef"
+          v-model="userCode"
+          title="Interactive Code Editor - Edit & Run!"
+          @run="handleRun"
+          @reset="handleReset"
+          @toggle-snippets="handleToggleSnippets"
+        />
+
+        <!-- Snippet Browser Sidebar -->
+        <transition name="slide-left">
+          <div v-if="showSnippets" class="snippet-sidebar">
+            <SnippetBrowser
+              @insert-snippet="handleInsertSnippet"
+              @snippet-copied="handleSnippetCopied"
+            />
+          </div>
+        </transition>
+      </div>
     </template>
   </ChapterLayout>
 </template>
 
 <style scoped>
-/* No additional styles needed - ChapterLayout handles the layout */
+.editor-wrapper {
+  position: relative;
+  height: 100%;
+  display: flex;
+}
+
+.snippet-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  background-color: #1e1e1e;
+  box-shadow: -4px 0 8px rgba(0, 0, 0, 0.3);
+  z-index: 10;
+}
+
+/* Transitions */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.3s ease;
+}
+
+.slide-left-enter-from,
+.slide-left-leave-to {
+  transform: translateX(100%);
+}
+
+@media (max-width: 768px) {
+  .snippet-sidebar {
+    width: 100%;
+  }
+}
 </style>
