@@ -135,9 +135,12 @@ onMounted(() => {
   })
 
   // Add Three.js type definitions for autocomplete
+  // Disable strict validation to avoid errors with JavaScript code
   monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-    noSemanticValidation: false,
-    noSyntaxValidation: false
+    noSemanticValidation: true, // Disable semantic validation for JavaScript
+    noSyntaxValidation: false,  // Keep syntax validation
+    noSuggestionDiagnostics: true,
+    diagnosticCodesToIgnore: [1005, 1108, 1005, 2451, 7027] // Ignore common strict mode errors
   })
 
   monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
@@ -147,7 +150,9 @@ onMounted(() => {
     module: monaco.languages.typescript.ModuleKind.CommonJS,
     noEmit: true,
     esModuleInterop: true,
-    allowSyntheticDefaultImports: true
+    allowSyntheticDefaultImports: true,
+    allowJs: true,
+    checkJs: false // Disable type checking for JavaScript
   })
 
   // Add Three.js global declarations for better IntelliSense

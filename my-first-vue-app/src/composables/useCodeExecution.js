@@ -57,11 +57,9 @@ export function useCodeExecution() {
     executionSuccess.value = false
 
     try {
-      // Wrap code in strict mode
-      const wrappedCode = `
-        'use strict';
-        ${code}
-      `
+      // Don't use strict mode to allow more flexible JavaScript
+      // (strict mode restricts eval, arguments, and other features)
+      const wrappedCode = code
 
       // Create function from code
       const contextKeys = Object.keys(context)
