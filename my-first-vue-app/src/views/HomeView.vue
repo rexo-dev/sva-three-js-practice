@@ -64,6 +64,13 @@ const chapters = [
     description: 'Create a fully interactive 3D experience with mouse interaction',
     path: '/chapter-10',
   },
+  {
+    number: 11,
+    title: 'Solar System Project',
+    description: 'Build a complete interactive solar system - Capstone project integrating all concepts',
+    path: '/chapter-11',
+    isCapstone: true,
+  },
 ]
 
 const startLearning = () => {
@@ -86,10 +93,16 @@ const startLearning = () => {
         v-for="chapter in chapters"
         :key="chapter.number"
         class="chapter-card"
+        :class="{ 'capstone-card': chapter.isCapstone }"
         @click="router.push(chapter.path)"
       >
-        <div class="chapter-number">{{ chapter.number }}</div>
-        <h3>{{ chapter.title }}</h3>
+        <div class="chapter-number" :class="{ 'capstone-number': chapter.isCapstone }">
+          {{ chapter.number }}
+        </div>
+        <h3>
+          {{ chapter.title }}
+          <span v-if="chapter.isCapstone" class="capstone-star">★</span>
+        </h3>
         <p>{{ chapter.description }}</p>
       </div>
     </div>
@@ -188,6 +201,60 @@ const startLearning = () => {
   color: #666;
   line-height: 1.5;
   font-size: 0.95rem;
+}
+
+.capstone-card {
+  border: 2px solid #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(66, 184, 131, 0.05) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.capstone-card::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, #ffd700, #42b883);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s;
+  border-radius: 8px;
+}
+
+.capstone-card:hover::before {
+  opacity: 0.2;
+}
+
+.capstone-card:hover {
+  border-color: #ffd700;
+  box-shadow: 0 8px 24px rgba(255, 215, 0, 0.3);
+}
+
+.capstone-number {
+  background: linear-gradient(135deg, #ffd700 0%, #42b883 100%);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.capstone-star {
+  color: #ffd700;
+  margin-left: 8px;
+  font-size: 1.2rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
 }
 
 @media (max-width: 768px) {

@@ -9,10 +9,14 @@
         :key="chapter.path"
         :to="chapter.path"
         class="chapter-link"
+        :class="{ 'capstone': chapter.isCapstone }"
         active-class="active"
       >
         <span class="chapter-number">{{ chapter.number }}</span>
-        <span class="chapter-title">{{ chapter.title }}</span>
+        <span class="chapter-title">
+          {{ chapter.title }}
+          <span v-if="chapter.isCapstone" class="capstone-badge">★</span>
+        </span>
       </router-link>
     </div>
     <div class="nav-controls" v-if="currentChapterIndex !== -1">
@@ -52,6 +56,7 @@ const chapters = [
   { number: 8, title: 'Shadows', path: '/chapter-8' },
   { number: 9, title: 'Loading 3D Models', path: '/chapter-9' },
   { number: 10, title: 'Interactive Scene', path: '/chapter-10' },
+  { number: 11, title: 'Solar System Project', path: '/chapter-11', isCapstone: true },
 ]
 
 const currentChapterIndex = computed(() => {
@@ -179,5 +184,25 @@ const goToNext = () => {
   background-color: #34495e;
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.chapter-link.capstone {
+  border: 1px solid #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(66, 184, 131, 0.1) 100%);
+}
+
+.chapter-link.capstone:hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(66, 184, 131, 0.2) 100%);
+}
+
+.chapter-link.capstone.active {
+  background: linear-gradient(135deg, #ffd700 0%, #42b883 100%);
+  border-color: #ffd700;
+}
+
+.capstone-badge {
+  color: #ffd700;
+  margin-left: 4px;
+  font-size: 0.9rem;
 }
 </style>
