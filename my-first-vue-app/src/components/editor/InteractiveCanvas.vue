@@ -266,7 +266,11 @@ function cleanup(disposeAll = true) {
 
 defineExpose({
   runCode,
-  cleanup
+  cleanup,
+  getScene: () => scene,
+  getCamera: () => camera,
+  getRenderer: () => renderer,
+  getControls: () => controls
 })
 </script>
 

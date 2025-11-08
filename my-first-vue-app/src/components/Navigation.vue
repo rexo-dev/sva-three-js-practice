@@ -59,6 +59,7 @@ const chapters = [
   { number: 10, title: 'Interactive Scene', path: '/chapter-10' },
   { number: 11, title: 'Solar System Project', path: '/chapter-11', isCapstone: true },
   { number: 12, title: 'Interactive Editor Demo', path: '/chapter-12', isNew: true },
+  { number: 13, title: 'Code Challenges', path: '/chapter-13', isNew: true },
 ]
 
 const currentChapterIndex = computed(() => {
