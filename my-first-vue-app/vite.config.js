@@ -16,4 +16,7 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.md'],
+  optimizeDeps: {
+    include: ['monaco-editor']
+  }
 })

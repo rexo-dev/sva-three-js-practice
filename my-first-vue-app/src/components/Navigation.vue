@@ -9,13 +9,14 @@
         :key="chapter.path"
         :to="chapter.path"
         class="chapter-link"
-        :class="{ 'capstone': chapter.isCapstone }"
+        :class="{ 'capstone': chapter.isCapstone, 'new-chapter': chapter.isNew }"
         active-class="active"
       >
         <span class="chapter-number">{{ chapter.number }}</span>
         <span class="chapter-title">
           {{ chapter.title }}
           <span v-if="chapter.isCapstone" class="capstone-badge">★</span>
+          <span v-if="chapter.isNew" class="new-badge">NEW</span>
         </span>
       </router-link>
     </div>
@@ -57,6 +58,7 @@ const chapters = [
   { number: 9, title: 'Loading 3D Models', path: '/chapter-9' },
   { number: 10, title: 'Interactive Scene', path: '/chapter-10' },
   { number: 11, title: 'Solar System Project', path: '/chapter-11', isCapstone: true },
+  { number: 12, title: 'Interactive Editor Demo', path: '/chapter-12', isNew: true },
 ]
 
 const currentChapterIndex = computed(() => {
@@ -204,5 +206,40 @@ const goToNext = () => {
   color: #ffd700;
   margin-left: 4px;
   font-size: 0.9rem;
+}
+
+.new-chapter {
+  border: 1px solid #42b883;
+  background: linear-gradient(135deg, rgba(66, 184, 131, 0.1) 0%, rgba(66, 184, 131, 0.05) 100%);
+}
+
+.new-chapter:hover {
+  background: linear-gradient(135deg, rgba(66, 184, 131, 0.2) 0%, rgba(66, 184, 131, 0.1) 100%);
+}
+
+.new-chapter.active {
+  background: linear-gradient(135deg, #42b883 0%, #35945f 100%);
+  border-color: #42b883;
+}
+
+.new-badge {
+  background-color: #42b883;
+  color: white;
+  padding: 2px 6px;
+  margin-left: 4px;
+  font-size: 0.65rem;
+  font-weight: bold;
+  border-radius: 3px;
+  animation: pulse-new 2s infinite;
+}
+
+@keyframes pulse-new {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 </style>
