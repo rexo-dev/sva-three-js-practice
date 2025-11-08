@@ -86,7 +86,7 @@ onMounted(() => {
     value: props.modelValue,
     language: props.language,
     theme: props.theme,
-    automaticLayout: true,
+    automaticLayout: true, // Automatically adjusts layout on container resize
     minimap: { enabled: false },
     fontSize: 14,
     lineNumbers: 'on',
@@ -105,6 +105,20 @@ onMounted(() => {
       showSnippets: true
     }
   })
+
+  // Watch for container resize using ResizeObserver
+  const resizeObserver = new ResizeObserver(() => {
+    if (editor) {
+      editor.layout() // Force Monaco to recalculate its layout
+    }
+  })
+
+  if (editorContainer.value.parentElement) {
+    resizeObserver.observe(editorContainer.value.parentElement)
+  }
+
+  // Store observer for cleanup
+  editor._resizeObserver = resizeObserver
 
   // Listen for content changes
   editor.onDidChangeModelContent(() => {
@@ -178,6 +192,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (editor) {
+    // Disconnect ResizeObserver
+    if (editor._resizeObserver) {
+      editor._resizeObserver.disconnect()
+    }
     editor.dispose()
   }
 })
