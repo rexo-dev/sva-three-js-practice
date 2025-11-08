@@ -30,53 +30,60 @@ animate()
 
 const guideContent = `# Interactive Code Editor Demo
 
-Welcome to the interactive code editor! This is a demo chapter showcasing the new live coding feature.
+Welcome to the interactive code editor! This chapter showcases the new **live coding feature** where you can edit Three.js code and see results in real-time.
+
+## How It Works
+
+1. **Read the Guide** - Learn about Three.js concepts (this tab)
+2. **Edit the Code** - Switch to the "Editor" tab on the right
+3. **See Results** - The 3D canvas on the left updates automatically!
 
 ## Features
 
 ### ✏️ Live Code Editing
-- Edit Three.js code in real-time
 - Professional Monaco editor (same as VS Code)
 - Syntax highlighting and autocomplete
+- Real-time error detection
 - Keyboard shortcuts (Ctrl/Cmd + Enter to run)
 
 ### 🎯 Instant Feedback
-- See your changes immediately
-- Error messages with helpful hints
-- Success indicators
-- Loading states
+- See your changes immediately in the 3D view
+- Helpful error messages with line numbers
+- Success indicators when code runs
+- Loading states during execution
 
 ### 🔧 Easy Controls
-- **Run**: Execute your code
-- **Reset**: Return to original code
-- **Format**: Auto-format your code
+- **▶ Run**: Execute your code (Ctrl/Cmd+Enter)
+- **↺ Reset**: Return to original code
+- **⚡ Format**: Auto-format your code
 
 ## Try It Out!
 
-Modify the code on the left to:
-1. Change the cube color (try \`0xff0000\` for red)
-2. Change the rotation speed
-3. Add more cubes
-4. Try different geometries (SphereGeometry, ConeGeometry)
-5. Experiment with materials
+Switch to the **Editor** tab and try modifying the code:
 
-## Example Modifications
-
-### Change Color to Red
+### 1. Change the Cube Color
 \`\`\`javascript
 const material = new THREE.MeshStandardMaterial({
-  color: 0xff0000  // Red cube!
+  color: 0xff0000,  // Try red! (or 0x0000ff for blue)
+  metalness: 0.3,
+  roughness: 0.4
 })
 \`\`\`
 
-### Make it Spin Faster
+### 2. Make it Spin Faster
 \`\`\`javascript
 cube.rotation.x += 0.05  // 5x faster!
 cube.rotation.y += 0.05
 \`\`\`
 
-### Add a Sphere
+### 3. Change the Size
 \`\`\`javascript
+const geometry = new THREE.BoxGeometry(2, 2, 2)  // Bigger cube!
+\`\`\`
+
+### 4. Add a Sphere
+\`\`\`javascript
+// Add this after creating the cube
 const sphereGeo = new THREE.SphereGeometry(0.5, 32, 32)
 const sphereMat = new THREE.MeshStandardMaterial({ color: 0x0000ff })
 const sphere = new THREE.Mesh(sphereGeo, sphereMat)
@@ -84,12 +91,62 @@ sphere.position.x = 2
 scene.add(sphere)
 \`\`\`
 
-## Tips
+### 5. Try Different Geometries
+\`\`\`javascript
+// Instead of BoxGeometry, try:
+const geometry = new THREE.ConeGeometry(1, 2, 32)
+// or
+const geometry = new THREE.TorusGeometry(1, 0.4, 16, 100)
+// or
+const geometry = new THREE.IcosahedronGeometry(1, 0)
+\`\`\`
 
-- Use the **Format** button to clean up your code
-- Press **Ctrl/Cmd + Enter** to run code quickly
-- Check the error panel if something goes wrong
-- Click **Reset** to start over
+## Available Objects
+
+When writing code in the editor, you have access to:
+
+- **THREE** - The Three.js library
+- **scene** - The 3D scene to add objects to
+- **camera** - The camera viewing the scene
+- **renderer** - The WebGL renderer
+- **controls** - OrbitControls for camera movement
+
+## Tips & Tricks
+
+💡 **Quick Run**: Press **Ctrl/Cmd + Enter** instead of clicking Run
+
+💡 **Format Code**: Use the Format button to clean up your code automatically
+
+💡 **Error Help**: If you see an error, read the message carefully - it tells you what went wrong and on which line
+
+💡 **Reset Anytime**: Don't worry about breaking things - just hit Reset to start over
+
+💡 **Experiment**: Try changing numbers, colors, and parameters to see what happens!
+
+## Common Mistakes to Avoid
+
+❌ **Forgetting to add to scene**: Always use \`scene.add(yourObject)\`
+
+❌ **No animation loop**: If nothing moves, make sure you have the \`animate()\` function
+
+❌ **Wrong color format**: Use hex colors like \`0xff0000\`, not \`"red"\` or \`#ff0000\`
+
+❌ **Syntax errors**: Watch for missing brackets, commas, or semicolons
+
+## Challenge Yourself!
+
+Try to create:
+
+1. **Three cubes** in different positions and colors
+2. A **rotating solar system** with a sun and planets
+3. A **bouncing ball** (hint: change position.y over time)
+4. An **animated rainbow** of colored spheres
+
+## What's Next?
+
+This interactive editor is available in all chapters! You can experiment with any Three.js code and learn by doing.
+
+Go back to previous chapters and try modifying their code to see what happens!
 
 Happy coding! 🚀
 `
@@ -122,56 +179,34 @@ const handleSuccess = () => {
 
 <template>
   <ChapterLayout>
+    <!-- Left side: Interactive 3D Canvas -->
     <template #canvas>
-      <div class="interactive-demo">
-        <div class="editor-section">
-          <CodeEditor
-            v-model="userCode"
-            title="Edit Your Code"
-            @run="handleRun"
-            @reset="handleReset"
-          />
-        </div>
-        <div class="canvas-section">
-          <InteractiveCanvas
-            ref="canvasRef"
-            :code="userCode"
-            :auto-run="false"
-            @error="handleError"
-            @success="handleSuccess"
-          />
-        </div>
-      </div>
+      <InteractiveCanvas
+        ref="canvasRef"
+        :code="userCode"
+        :auto-run="false"
+        @error="handleError"
+        @success="handleSuccess"
+      />
     </template>
+
+    <!-- Right side Guide tab: Tutorial content -->
     <template #guide>
       <MarkdownViewer :content="guideContent" />
+    </template>
+
+    <!-- Right side Code tab: Interactive Editor (replaces static code view) -->
+    <template #code>
+      <CodeEditor
+        v-model="userCode"
+        title="Interactive Code Editor - Edit & Run!"
+        @run="handleRun"
+        @reset="handleReset"
+      />
     </template>
   </ChapterLayout>
 </template>
 
 <style scoped>
-.interactive-demo {
-  display: flex;
-  height: 100%;
-  gap: 10px;
-  padding: 10px;
-  background-color: #0d1117;
-}
-
-.editor-section,
-.canvas-section {
-  flex: 1;
-  min-width: 0;
-}
-
-@media (max-width: 968px) {
-  .interactive-demo {
-    flex-direction: column;
-  }
-
-  .editor-section,
-  .canvas-section {
-    min-height: 400px;
-  }
-}
+/* No additional styles needed - ChapterLayout handles the layout */
 </style>
