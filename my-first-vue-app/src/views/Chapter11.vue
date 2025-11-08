@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, computed } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import ChapterLayout from '../components/ChapterLayout.vue'
@@ -14,6 +14,11 @@ const timeScale = ref(1)
 const showOrbits = ref(true)
 const selectedPlanetName = ref(null)
 const isPaused = ref(false)
+
+// Scale factors for better visibility
+const sunScale = ref(3)
+const planetScale = ref(4)
+const moonScale = ref(6)
 
 // Three.js objects
 let scene, camera, renderer, controls, clock
@@ -33,8 +38,9 @@ const solarSystem = {
 const planetsData = [
   {
     name: 'Mercury',
-    size: 0.4,
+    baseSize: 0.38,
     color: 0x8c7853,
+    glowColor: 0xa89968,
     orbitRadius: 40,
     orbitSpeed: 0.04,
     rotationSpeed: 0.002,
@@ -50,11 +56,12 @@ const planetsData = [
   },
   {
     name: 'Venus',
-    size: 0.95,
+    baseSize: 0.95,
     color: 0xffc649,
+    glowColor: 0xffd97d,
     orbitRadius: 70,
     orbitSpeed: 0.015,
-    rotationSpeed: -0.001, // Retrograde rotation
+    rotationSpeed: -0.001,
     angle: Math.PI / 4,
     tilt: 0.05,
     info: {
@@ -67,15 +74,17 @@ const planetsData = [
   },
   {
     name: 'Earth',
-    size: 1.0,
-    color: 0x4a90e2,
+    baseSize: 1.0,
+    color: 0x2196f3,
+    glowColor: 0x64b5f6,
     orbitRadius: 100,
     orbitSpeed: 0.01,
     rotationSpeed: 0.005,
     angle: Math.PI / 2,
-    tilt: 0.41, // 23.5 degrees
+    tilt: 0.41,
     hasMoon: true,
-    moonSize: 0.27,
+    moonBaseSize: 0.27,
+    moonColor: 0xaaaaaa,
     moonOrbitRadius: 3,
     moonOrbitSpeed: 0.03,
     moonAngle: 0,
@@ -89,8 +98,9 @@ const planetsData = [
   },
   {
     name: 'Mars',
-    size: 0.53,
-    color: 0xe27b58,
+    baseSize: 0.53,
+    color: 0xdc4c3e,
+    glowColor: 0xe57373,
     orbitRadius: 150,
     orbitSpeed: 0.008,
     rotationSpeed: 0.004,
@@ -106,8 +116,9 @@ const planetsData = [
   },
   {
     name: 'Jupiter',
-    size: 5.0,
-    color: 0xdaa520,
+    baseSize: 5.0,
+    color: 0xd4a574,
+    glowColor: 0xe0b887,
     orbitRadius: 250,
     orbitSpeed: 0.004,
     rotationSpeed: 0.01,
@@ -123,14 +134,16 @@ const planetsData = [
   },
   {
     name: 'Saturn',
-    size: 4.5,
-    color: 0xf4e4c1,
+    baseSize: 4.5,
+    color: 0xfad5a5,
+    glowColor: 0xfce4c4,
     orbitRadius: 350,
     orbitSpeed: 0.003,
     rotationSpeed: 0.009,
     angle: (5 * Math.PI) / 4,
     tilt: 0.47,
     hasRings: true,
+    ringColor: 0xc9b777,
     info: {
       diameter: '116,460 km',
       distance: '9.54 AU',
@@ -141,13 +154,14 @@ const planetsData = [
   },
   {
     name: 'Uranus',
-    size: 2.0,
-    color: 0x4fd5d6,
+    baseSize: 2.0,
+    color: 0x4fc3f7,
+    glowColor: 0x81d4fa,
     orbitRadius: 420,
     orbitSpeed: 0.002,
     rotationSpeed: 0.007,
     angle: (3 * Math.PI) / 2,
-    tilt: 1.71, // 98 degrees - extreme tilt
+    tilt: 1.71,
     info: {
       diameter: '50,724 km',
       distance: '19.19 AU',
@@ -158,8 +172,9 @@ const planetsData = [
   },
   {
     name: 'Neptune',
-    size: 1.95,
-    color: 0x4166f5,
+    baseSize: 1.95,
+    color: 0x304ffe,
+    glowColor: 0x5c6bc0,
     orbitRadius: 480,
     orbitSpeed: 0.001,
     rotationSpeed: 0.008,
@@ -176,6 +191,37 @@ const planetsData = [
 ]
 
 const selectedPlanet = ref(null)
+
+// Planet icons mapping
+const planetIcons = {
+  Sun: '☀️',
+  Mercury: '☿️',
+  Venus: '♀️',
+  Earth: '🌍',
+  Mars: '♂️',
+  Jupiter: '♃',
+  Saturn: '♄',
+  Uranus: '♅',
+  Neptune: '♆',
+  Moon: '🌙',
+}
+
+// Computed celestial body list
+const celestialBodies = computed(() => {
+  const bodies = [{ name: 'Sun', type: 'star', icon: planetIcons.Sun }]
+  planetsData.forEach((planet) => {
+    bodies.push({ name: planet.name, type: 'planet', data: planet, icon: planetIcons[planet.name] })
+    if (planet.hasMoon) {
+      bodies.push({
+        name: `${planet.name}'s Moon`,
+        type: 'moon',
+        parent: planet.name,
+        icon: planetIcons.Moon,
+      })
+    }
+  })
+  return bodies
+})
 
 onMounted(() => {
   initThreeJS()
@@ -194,7 +240,6 @@ onBeforeUnmount(() => {
     cancelAnimationFrame(animationId)
   }
 
-  // Cleanup Three.js resources
   if (renderer) {
     renderer.dispose()
   }
@@ -203,7 +248,6 @@ onBeforeUnmount(() => {
     controls.dispose()
   }
 
-  // Dispose geometries and materials
   scene?.traverse((object) => {
     if (object.geometry) {
       object.geometry.dispose()
@@ -217,7 +261,6 @@ onBeforeUnmount(() => {
     }
   })
 
-  // Remove event listeners
   window.removeEventListener('resize', onWindowResize)
   if (canvasRef.value) {
     canvasRef.value.removeEventListener('click', onCanvasClick)
@@ -232,6 +275,11 @@ watch(showOrbits, (newValue) => {
   })
 })
 
+// Watch for scale changes
+watch([sunScale, planetScale, moonScale], () => {
+  updateScales()
+})
+
 // Watch for pause state
 watch(isPaused, (newValue) => {
   if (!newValue && clock) {
@@ -240,61 +288,61 @@ watch(isPaused, (newValue) => {
 })
 
 function initThreeJS() {
-  // Create scene
   scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x000000)
+  scene.background = new THREE.Color(0x000011)
 
-  // Create camera
-  const width = canvasRef.value.parentElement.clientWidth
-  const height = canvasRef.value.parentElement.clientHeight
+  const container = canvasRef.value.parentElement
+  const width = container.clientWidth
+  const height = container.clientHeight
   camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 10000)
   camera.position.set(150, 200, 150)
   camera.lookAt(0, 0, 0)
 
-  // Create renderer
   renderer = new THREE.WebGLRenderer({ canvas: canvasRef.value, antialias: true })
   renderer.setSize(width, height)
   renderer.setPixelRatio(window.devicePixelRatio)
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
-  // Create OrbitControls
   controls = new OrbitControls(camera, canvasRef.value)
   controls.enableDamping = true
   controls.dampingFactor = 0.05
   controls.minDistance = 20
-  controls.maxDistance = 1000
+  controls.maxDistance = 1500
 
-  // Create clock
   clock = new THREE.Clock()
 
-  // Raycaster for interaction
   raycaster = new THREE.Raycaster()
   mouse = new THREE.Vector2()
 
-  // Handle window resize
   window.addEventListener('resize', onWindowResize)
+
+  // Watch for parent container resize
+  const resizeObserver = new ResizeObserver(() => {
+    onWindowResize()
+  })
+  resizeObserver.observe(container)
 }
 
 function createSun() {
-  // Sun geometry
   const sunGeometry = new THREE.SphereGeometry(10, 32, 32)
   const sunMaterial = new THREE.MeshBasicMaterial({
-    color: 0xfdb813,
-    emissive: 0xfdb813,
-    emissiveIntensity: 1,
+    color: 0xffff00, // Brighter yellow
+    emissive: 0xffff00,
+    emissiveIntensity: 1.5, // Increased intensity
   })
   const sun = new THREE.Mesh(sunGeometry, sunMaterial)
   sun.name = 'Sun'
+  sun.userData = { isSun: true }
   scene.add(sun)
   solarSystem.sun = sun
 
-  // Sun glow effect
-  const glowGeometry = new THREE.SphereGeometry(12, 32, 32)
+  // Sun glow effect - brighter and larger
+  const glowGeometry = new THREE.SphereGeometry(13, 32, 32)
   const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffa500,
+    color: 0xffcc00,
     transparent: true,
-    opacity: 0.3,
+    opacity: 0.5, // Increased opacity for more visible glow
   })
   const glow = new THREE.Mesh(glowGeometry, glowMaterial)
   sun.add(glow)
@@ -302,33 +350,30 @@ function createSun() {
 
 function createPlanets() {
   planetsData.forEach((planetData) => {
-    // Create planet mesh
-    const geometry = new THREE.SphereGeometry(planetData.size, 32, 32)
+    const size = planetData.baseSize * planetScale.value
+    const geometry = new THREE.SphereGeometry(size, 32, 32)
     const material = new THREE.MeshStandardMaterial({
       color: planetData.color,
-      roughness: 0.7,
-      metalness: 0.3,
+      emissive: planetData.glowColor,
+      emissiveIntensity: 0.3, // Increased from 0.1 for better visibility
+      roughness: 0.5, // Reduced for more shine
+      metalness: 0.4, // Increased for more reflectivity
     })
     const planet = new THREE.Mesh(geometry, material)
 
-    // Set initial position
     planet.position.x = Math.cos(planetData.angle) * planetData.orbitRadius
     planet.position.z = Math.sin(planetData.angle) * planetData.orbitRadius
 
-    // Apply axial tilt
     planet.rotation.z = planetData.tilt
 
-    // Enable shadows
     planet.castShadow = true
     planet.receiveShadow = true
 
-    // Store planet data
-    planet.userData = { planetData }
+    planet.userData = { planetData, baseSize: planetData.baseSize }
     planet.name = planetData.name
 
     scene.add(planet)
 
-    // Store reference
     const planetObj = {
       mesh: planet,
       data: planetData,
@@ -336,15 +381,19 @@ function createPlanets() {
 
     // Create moon if applicable
     if (planetData.hasMoon) {
-      const moonGeometry = new THREE.SphereGeometry(planetData.moonSize, 16, 16)
+      const moonSize = planetData.moonBaseSize * moonScale.value
+      const moonGeometry = new THREE.SphereGeometry(moonSize, 16, 16)
       const moonMaterial = new THREE.MeshStandardMaterial({
-        color: 0x888888,
+        color: planetData.moonColor,
         roughness: 0.9,
       })
       const moon = new THREE.Mesh(moonGeometry, moonMaterial)
       moon.castShadow = true
       moon.receiveShadow = true
       moon.position.x = planetData.moonOrbitRadius
+      moon.name = `${planetData.name}'s Moon`
+      moon.userData = { isMoon: true, parentPlanet: planetData.name, baseMoonSize: planetData.moonBaseSize }
+
       planetObj.moon = moon
       planetObj.moonData = {
         orbitRadius: planetData.moonOrbitRadius,
@@ -356,24 +405,63 @@ function createPlanets() {
 
     // Create rings if applicable (Saturn)
     if (planetData.hasRings) {
-      const ringGeometry = new THREE.RingGeometry(
-        planetData.size * 1.5,
-        planetData.size * 2.5,
-        64
-      )
+      const ringGeometry = new THREE.RingGeometry(size * 1.5, size * 2.5, 64)
       const ringMaterial = new THREE.MeshStandardMaterial({
-        color: 0xc9b777,
+        color: planetData.ringColor,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.7,
         roughness: 0.9,
       })
       const rings = new THREE.Mesh(ringGeometry, ringMaterial)
       rings.rotation.x = Math.PI / 2
+      rings.name = 'rings'
       planet.add(rings)
+      planetObj.rings = rings
     }
 
     solarSystem.planets.push(planetObj)
+  })
+}
+
+function updateScales() {
+  // Update sun scale
+  if (solarSystem.sun) {
+    const newSunScale = 10 * sunScale.value
+    solarSystem.sun.scale.set(1, 1, 1)
+    solarSystem.sun.geometry.dispose()
+    solarSystem.sun.geometry = new THREE.SphereGeometry(newSunScale, 32, 32)
+
+    // Update sun glow
+    const glow = solarSystem.sun.children[0]
+    if (glow) {
+      glow.geometry.dispose()
+      glow.geometry = new THREE.SphereGeometry(newSunScale * 1.2, 32, 32)
+    }
+  }
+
+  // Update planet scales
+  solarSystem.planets.forEach((planetObj) => {
+    const planet = planetObj.mesh
+    const baseSize = planet.userData.baseSize
+    const newSize = baseSize * planetScale.value
+
+    planet.geometry.dispose()
+    planet.geometry = new THREE.SphereGeometry(newSize, 32, 32)
+
+    // Update rings if present
+    if (planetObj.rings) {
+      planetObj.rings.geometry.dispose()
+      planetObj.rings.geometry = new THREE.RingGeometry(newSize * 1.5, newSize * 2.5, 64)
+    }
+
+    // Update moon if present
+    if (planetObj.moon) {
+      const baseMoonSize = planetObj.moon.userData.baseMoonSize
+      const newMoonSize = baseMoonSize * moonScale.value
+      planetObj.moon.geometry.dispose()
+      planetObj.moon.geometry = new THREE.SphereGeometry(newMoonSize, 16, 16)
+    }
   })
 }
 
@@ -393,9 +481,9 @@ function createOrbitPaths() {
     const points = curve.getPoints(128)
     const geometry = new THREE.BufferGeometry().setFromPoints(points)
     const material = new THREE.LineBasicMaterial({
-      color: 0x444444,
+      color: planetData.glowColor,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.25,
     })
 
     const orbitLine = new THREE.Line(geometry, material)
@@ -408,7 +496,6 @@ function createOrbitPaths() {
 }
 
 function createAsteroidBelt() {
-  // Asteroid belt between Mars and Jupiter
   const asteroidCount = 800
   const asteroidGeometry = new THREE.DodecahedronGeometry(0.3, 0)
   const asteroidMaterial = new THREE.MeshStandardMaterial({
@@ -426,7 +513,6 @@ function createAsteroidBelt() {
   const asteroidData = []
 
   for (let i = 0; i < asteroidCount; i++) {
-    // Random orbit radius between Mars and Jupiter
     const orbitRadius = 180 + Math.random() * 40
     const angle = Math.random() * Math.PI * 2
     const yOffset = (Math.random() - 0.5) * 5
@@ -435,17 +521,14 @@ function createAsteroidBelt() {
     dummy.position.y = yOffset
     dummy.position.z = Math.sin(angle) * orbitRadius
 
-    // Random rotation
     dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI)
 
-    // Random scale
     const scale = 0.5 + Math.random() * 1.5
     dummy.scale.set(scale, scale, scale)
 
     dummy.updateMatrix()
     asteroidBelt.setMatrixAt(i, dummy.matrix)
 
-    // Store orbit data
     asteroidData.push({
       orbitRadius,
       angle,
@@ -463,14 +546,13 @@ function createAsteroidBelt() {
 }
 
 function createStarfield() {
-  const starCount = 5000
+  const starCount = 8000
   const geometry = new THREE.BufferGeometry()
   const positions = []
   const colors = []
 
   for (let i = 0; i < starCount; i++) {
-    // Random position in a large sphere
-    const radius = 2000 + Math.random() * 1000
+    const radius = 2000 + Math.random() * 1500
     const theta = Math.random() * Math.PI * 2
     const phi = Math.acos(Math.random() * 2 - 1)
 
@@ -480,9 +562,11 @@ function createStarfield() {
 
     positions.push(x, y, z)
 
-    // Slightly varied star colors (white to pale blue)
     const color = new THREE.Color()
-    color.setHSL(0.6, Math.random() * 0.3, 0.8 + Math.random() * 0.2)
+    const hue = 0.55 + Math.random() * 0.15
+    const saturation = Math.random() * 0.3
+    const lightness = 0.7 + Math.random() * 0.3
+    color.setHSL(hue, saturation, lightness)
     colors.push(color.r, color.g, color.b)
   }
 
@@ -490,10 +574,10 @@ function createStarfield() {
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
 
   const material = new THREE.PointsMaterial({
-    size: 2,
+    size: 2.5,
     vertexColors: true,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.9,
   })
 
   const stars = new THREE.Points(geometry, material)
@@ -502,12 +586,12 @@ function createStarfield() {
 }
 
 function setupLighting() {
-  // Ambient light for subtle fill
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+  // Increased ambient light for better visibility
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.3)
   scene.add(ambientLight)
 
-  // Point light at sun position
-  const sunLight = new THREE.PointLight(0xffffff, 2, 2000)
+  // Brighter sun light
+  const sunLight = new THREE.PointLight(0xffffcc, 3.5, 3000)
   sunLight.position.set(0, 0, 0)
   sunLight.castShadow = true
   sunLight.shadow.mapSize.width = 2048
@@ -526,6 +610,19 @@ function onCanvasClick(event) {
   updateMousePosition(event)
 
   raycaster.setFromCamera(mouse, camera)
+
+  // Check for sun click
+  if (solarSystem.sun) {
+    const sunIntersects = raycaster.intersectObject(solarSystem.sun)
+    if (sunIntersects.length > 0) {
+      focusOnSun()
+      selectedPlanet.value = null
+      selectedPlanetName.value = 'Sun'
+      return
+    }
+  }
+
+  // Check for planet clicks
   const planetMeshes = solarSystem.planets.map((p) => p.mesh)
   const intersects = raycaster.intersectObjects(planetMeshes)
 
@@ -546,17 +643,21 @@ function onCanvasMouseMove(event) {
   updateMousePosition(event)
 
   raycaster.setFromCamera(mouse, camera)
-  const planetMeshes = solarSystem.planets.map((p) => p.mesh)
-  const intersects = raycaster.intersectObjects(planetMeshes)
 
-  // Reset all planet emissive
+  const planetMeshes = solarSystem.planets.map((p) => p.mesh)
+  const allObjects = solarSystem.sun ? [solarSystem.sun, ...planetMeshes] : planetMeshes
+  const intersects = raycaster.intersectObjects(allObjects)
+
+  // Reset all emissive
   solarSystem.planets.forEach((p) => {
-    p.mesh.material.emissive.setHex(0x000000)
+    p.mesh.material.emissiveIntensity = 0.1
   })
 
   if (intersects.length > 0) {
-    const hoveredPlanet = intersects[0].object
-    hoveredPlanet.material.emissive.setHex(0x222222)
+    const hovered = intersects[0].object
+    if (!hovered.userData.isSun) {
+      hovered.material.emissiveIntensity = 0.3
+    }
     canvasRef.value.style.cursor = 'pointer'
   } else {
     canvasRef.value.style.cursor = 'default'
@@ -569,29 +670,71 @@ function updateMousePosition(event) {
   mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
 }
 
+function focusOnSun() {
+  const targetPosition = new THREE.Vector3(100, 80, 100)
+  animateCameraTo(targetPosition, new THREE.Vector3(0, 0, 0))
+}
+
 function focusOnPlanet(planetMesh, planetData) {
-  const distance = planetData.size * 8
+  const distance = planetData.baseSize * planetScale.value * 8
   const targetPosition = new THREE.Vector3(
     planetMesh.position.x + distance,
     distance * 0.5,
     planetMesh.position.z + distance
   )
+  animateCameraTo(targetPosition, planetMesh.position)
+}
 
-  // Smoothly move camera (simple linear interpolation)
+function focusOnBody(bodyName) {
+  if (bodyName === 'Sun') {
+    focusOnSun()
+    selectedPlanet.value = null
+    selectedPlanetName.value = 'Sun'
+    return
+  }
+
+  // Check if it's a moon
+  if (bodyName.includes("'s Moon")) {
+    const parentPlanetName = bodyName.replace("'s Moon", '')
+    const planetObj = solarSystem.planets.find((p) => p.data.name === parentPlanetName)
+    if (planetObj && planetObj.moon) {
+      const moonSize = planetObj.data.moonBaseSize * moonScale.value
+      const distance = moonSize * 10
+      const targetPosition = new THREE.Vector3(
+        planetObj.moon.position.x + distance,
+        distance * 0.3,
+        planetObj.moon.position.z + distance
+      )
+      animateCameraTo(targetPosition, planetObj.moon.position)
+      selectedPlanet.value = null
+      selectedPlanetName.value = bodyName
+    }
+    return
+  }
+
+  // It's a planet
+  const planetObj = solarSystem.planets.find((p) => p.data.name === bodyName)
+  if (planetObj) {
+    selectedPlanet.value = planetObj.data
+    selectedPlanetName.value = bodyName
+    focusOnPlanet(planetObj.mesh, planetObj.data)
+  }
+}
+
+function animateCameraTo(targetPosition, targetLookAt) {
   const startPosition = camera.position.clone()
   const startTarget = controls.target.clone()
-  const duration = 1500 // ms
+  const duration = 1500
   const startTime = Date.now()
 
   function animateCamera() {
     const elapsed = Date.now() - startTime
     const progress = Math.min(elapsed / duration, 1)
 
-    // Ease in-out
     const eased = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress
 
     camera.position.lerpVectors(startPosition, targetPosition, eased)
-    controls.target.lerpVectors(startTarget, planetMesh.position, eased)
+    controls.target.lerpVectors(startTarget, targetLookAt, eased)
 
     if (progress < 1) {
       requestAnimationFrame(animateCamera)
@@ -599,6 +742,13 @@ function focusOnPlanet(planetMesh, planetData) {
   }
 
   animateCamera()
+}
+
+function fitAll() {
+  camera.position.set(600, 400, 600)
+  controls.target.set(0, 0, 0)
+  selectedPlanet.value = null
+  selectedPlanetName.value = null
 }
 
 function onWindowResize() {
@@ -616,25 +766,20 @@ function animate() {
     const delta = clock.getDelta()
     const scaledDelta = delta * timeScale.value
 
-    // Rotate sun
     if (solarSystem.sun) {
       solarSystem.sun.rotation.y += 0.001 * scaledDelta
     }
 
-    // Animate planets
     solarSystem.planets.forEach((planetObj) => {
       const planet = planetObj.mesh
       const data = planetObj.data
 
-      // Orbital revolution
       data.angle += data.orbitSpeed * scaledDelta
       planet.position.x = Math.cos(data.angle) * data.orbitRadius
       planet.position.z = Math.sin(data.angle) * data.orbitRadius
 
-      // Axial rotation
       planet.rotation.y += data.rotationSpeed * scaledDelta
 
-      // Animate moon
       if (planetObj.moon) {
         const moonData = planetObj.moonData
         moonData.angle += moonData.orbitSpeed * scaledDelta
@@ -648,26 +793,22 @@ function animate() {
       }
     })
 
-    // Animate asteroid belt
     if (solarSystem.asteroidBelt) {
       const asteroidBelt = solarSystem.asteroidBelt.mesh
       const asteroidData = solarSystem.asteroidBelt.data
       const dummy = new THREE.Object3D()
 
       asteroidData.forEach((asteroid, i) => {
-        // Update orbit angle
         asteroid.angle += asteroid.orbitSpeed * scaledDelta
 
         dummy.position.x = Math.cos(asteroid.angle) * asteroid.orbitRadius
-        dummy.position.y = asteroidBelt.instanceMatrix.array[i * 16 + 13] // Keep y position
+        dummy.position.y = asteroidBelt.instanceMatrix.array[i * 16 + 13]
         dummy.position.z = Math.sin(asteroid.angle) * asteroid.orbitRadius
 
-        // Update rotation
         dummy.rotation.x += asteroid.rotationSpeed.x * scaledDelta
         dummy.rotation.y += asteroid.rotationSpeed.y * scaledDelta
         dummy.rotation.z += asteroid.rotationSpeed.z * scaledDelta
 
-        // Get scale from existing matrix
         const scale = Math.cbrt(
           asteroidBelt.instanceMatrix.array[i * 16] *
             asteroidBelt.instanceMatrix.array[i * 16 + 5] *
@@ -686,13 +827,6 @@ function animate() {
   controls.update()
   renderer.render(scene, camera)
 }
-
-function resetCamera() {
-  camera.position.set(150, 200, 150)
-  controls.target.set(0, 0, 0)
-  selectedPlanet.value = null
-  selectedPlanetName.value = null
-}
 </script>
 
 <template>
@@ -701,10 +835,10 @@ function resetCamera() {
       <div class="solar-system-container">
         <canvas ref="canvasRef"></canvas>
 
-        <!-- UI Controls Overlay -->
+        <!-- Left Controls Panel -->
         <div class="controls-panel">
           <div class="control-section">
-            <h4>Controls</h4>
+            <h4>Animation</h4>
 
             <div class="control-group">
               <label>Speed: {{ timeScale }}x</label>
@@ -723,14 +857,43 @@ function resetCamera() {
                 {{ isPaused ? '▶ Resume' : '⏸ Pause' }}
               </button>
             </div>
+          </div>
+
+          <div class="control-section">
+            <h4>Scale Factors</h4>
 
             <div class="control-group">
-              <button @click="resetCamera" class="control-button">↺ Reset Camera</button>
+              <label>Sun: {{ sunScale }}x</label>
+              <input type="range" v-model.number="sunScale" min="1" max="5" step="0.5" class="slider" />
+            </div>
+
+            <div class="control-group">
+              <label>Planets: {{ planetScale }}x</label>
+              <input
+                type="range"
+                v-model.number="planetScale"
+                min="1"
+                max="10"
+                step="0.5"
+                class="slider"
+              />
+            </div>
+
+            <div class="control-group">
+              <label>Moons: {{ moonScale }}x</label>
+              <input
+                type="range"
+                v-model.number="moonScale"
+                min="1"
+                max="15"
+                step="0.5"
+                class="slider"
+              />
             </div>
           </div>
 
           <div class="control-section">
-            <h4>Display</h4>
+            <h4>View</h4>
 
             <div class="control-group checkbox-group">
               <label>
@@ -738,6 +901,32 @@ function resetCamera() {
                 Show Orbit Paths
               </label>
             </div>
+
+            <div class="control-group">
+              <button @click="fitAll" class="control-button">🔭 Fit All</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Celestial Bodies List -->
+        <div class="bodies-panel">
+          <h4>Celestial Bodies</h4>
+          <div class="bodies-list">
+            <button
+              v-for="body in celestialBodies"
+              :key="body.name"
+              @click="focusOnBody(body.name)"
+              class="body-button"
+              :class="{
+                active: selectedPlanetName === body.name,
+                sun: body.type === 'star',
+                planet: body.type === 'planet',
+                moon: body.type === 'moon',
+              }"
+            >
+              <span class="body-icon">{{ body.icon }}</span>
+              <span class="body-name">{{ body.name }}</span>
+            </button>
           </div>
         </div>
 
@@ -771,7 +960,7 @@ function resetCamera() {
 
         <!-- Instructions Hint -->
         <div class="hint-panel">
-          <p>🖱️ Click on planets to learn more • Drag to rotate • Scroll to zoom</p>
+          <p>🖱️ Click celestial bodies or use the list • Drag to rotate • Scroll to zoom</p>
         </div>
       </div>
     </template>
@@ -803,22 +992,108 @@ canvas {
 .controls-panel {
   position: absolute;
   top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.9);
+  padding: 15px;
+  border-radius: 8px;
+  color: white;
+  min-width: 220px;
+  max-width: 250px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(66, 184, 131, 0.3);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.bodies-panel {
+  position: absolute;
+  top: 20px;
   right: 20px;
-  background: rgba(0, 0, 0, 0.85);
+  background: rgba(0, 0, 0, 0.9);
   padding: 15px;
   border-radius: 8px;
   color: white;
   min-width: 200px;
+  max-width: 250px;
   backdrop-filter: blur(10px);
+  border: 1px solid rgba(66, 184, 131, 0.3);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.bodies-panel h4 {
+  margin: 0 0 10px 0;
+  font-size: 0.9rem;
+  color: #42b883;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid rgba(66, 184, 131, 0.3);
+  padding-bottom: 8px;
+}
+
+.bodies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.body-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+.body-button:hover {
+  background: rgba(66, 184, 131, 0.2);
+  border-color: rgba(66, 184, 131, 0.5);
+  transform: translateX(2px);
+}
+
+.body-button.active {
+  background: rgba(66, 184, 131, 0.3);
+  border-color: #42b883;
+}
+
+.body-button.sun {
+  border-left: 3px solid #ffcc33;
+}
+
+.body-button.planet {
+  border-left: 3px solid #42b883;
+}
+
+.body-button.moon {
+  border-left: 3px solid #aaaaaa;
+  padding-left: 18px;
+}
+
+.body-icon {
+  font-size: 1.1rem;
+}
+
+.body-name {
+  flex: 1;
 }
 
 .control-section {
   margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .control-section:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .control-section h4 {
@@ -847,6 +1122,7 @@ canvas {
 .slider {
   width: 100%;
   cursor: pointer;
+  accent-color: #42b883;
 }
 
 .control-button {
@@ -880,20 +1156,21 @@ canvas {
 .checkbox-group input[type='checkbox'] {
   margin-right: 8px;
   cursor: pointer;
+  accent-color: #42b883;
 }
 
 .info-panel {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.95);
   padding: 20px;
   border-radius: 8px;
   color: white;
   min-width: 280px;
   max-width: 350px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(66, 184, 131, 0.3);
   animation: slideIn 0.3s ease-out;
 }
 
@@ -960,25 +1237,43 @@ canvas {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   padding: 10px 15px;
   border-radius: 6px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.85rem;
   backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(66, 184, 131, 0.2);
 }
 
 .hint-panel p {
   margin: 0;
 }
 
+@media (max-width: 1200px) {
+  .controls-panel,
+  .bodies-panel {
+    max-width: 200px;
+    min-width: 180px;
+  }
+}
+
 @media (max-width: 768px) {
   .controls-panel {
     top: 10px;
-    right: 10px;
     left: 10px;
-    min-width: auto;
+    right: auto;
+    min-width: 160px;
+    max-width: 180px;
+  }
+
+  .bodies-panel {
+    top: auto;
+    bottom: 100px;
+    right: 10px;
+    min-width: 160px;
+    max-width: 180px;
+    max-height: 250px;
   }
 
   .info-panel {
