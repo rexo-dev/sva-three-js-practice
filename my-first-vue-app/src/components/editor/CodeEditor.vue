@@ -247,6 +247,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   background-color: #1e1e1e;
   border-radius: 8px;
   overflow: hidden;
