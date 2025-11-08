@@ -4,6 +4,7 @@ import CodeEditor from '../components/editor/CodeEditor.vue'
 import InteractiveCanvas from '../components/editor/InteractiveCanvas.vue'
 import ChapterLayout from '../components/ChapterLayout.vue'
 import MarkdownViewer from '../components/MarkdownViewer.vue'
+import { useCodePersistence } from '../composables/useCodePersistence'
 
 // Default code template
 const defaultCode = `// Create a rotating cube
@@ -27,6 +28,9 @@ function animate() {
 }
 animate()
 `
+
+// Use code persistence
+const { code: userCode, resetToDefault } = useCodePersistence('chapter-12', defaultCode)
 
 const guideContent = `# Interactive Code Editor Demo
 
@@ -152,7 +156,6 @@ Happy coding! 🚀
 `
 
 // Reactive state
-const userCode = ref(defaultCode)
 const canvasRef = ref(null)
 
 const handleRun = () => {
@@ -162,7 +165,7 @@ const handleRun = () => {
 }
 
 const handleReset = () => {
-  userCode.value = defaultCode
+  userCode.value = resetToDefault()
   if (canvasRef.value) {
     canvasRef.value.runCode()
   }

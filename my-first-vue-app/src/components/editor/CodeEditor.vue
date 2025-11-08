@@ -3,6 +3,14 @@
     <div class="editor-toolbar">
       <div class="toolbar-left">
         <span class="editor-title">{{ title }}</span>
+        <transition name="fade">
+          <span v-if="showSaveStatus" class="save-status" :class="saveStatus">
+            <span v-if="saveStatus === 'saved'" class="status-icon">✓</span>
+            <span v-else-if="saveStatus === 'saving'" class="status-icon spinner">⟳</span>
+            <span v-else class="status-icon">○</span>
+            {{ saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved' }}
+          </span>
+        </transition>
       </div>
       <div class="toolbar-right">
         <button @click="formatCode" class="toolbar-button" title="Format Code (Shift+Alt+F)">
@@ -44,13 +52,19 @@ const props = defineProps({
   theme: {
     type: String,
     default: 'vs-dark'
+  },
+  showSaveStatus: {
+    type: Boolean,
+    default: true
   }
 })
 
 const emit = defineEmits(['update:modelValue', 'run', 'reset'])
 
 const editorContainer = ref(null)
+const saveStatus = ref('saved') // 'saved', 'saving', 'unsaved'
 let editor = null
+let saveStatusTimeout = null
 
 onMounted(() => {
   if (!editorContainer.value) return
@@ -83,6 +97,24 @@ onMounted(() => {
   // Listen for content changes
   editor.onDidChangeModelContent(() => {
     emit('update:modelValue', editor.getValue())
+
+    // Update save status
+    if (props.showSaveStatus) {
+      saveStatus.value = 'unsaved'
+
+      // Clear existing timeout
+      if (saveStatusTimeout) {
+        clearTimeout(saveStatusTimeout)
+      }
+
+      // Show "saving..." after a brief delay, then "saved"
+      saveStatusTimeout = setTimeout(() => {
+        saveStatus.value = 'saving'
+        setTimeout(() => {
+          saveStatus.value = 'saved'
+        }, 300)
+      }, 500)
+    }
   })
 
   // Add keyboard shortcut for running code (Ctrl/Cmd + Enter)
@@ -105,6 +137,26 @@ onMounted(() => {
     esModuleInterop: true,
     allowSyntheticDefaultImports: true
   })
+
+  // Add Three.js global declarations for better IntelliSense
+  const threeJsGlobals = `
+    declare const THREE: typeof import('three');
+    declare const scene: import('three').Scene;
+    declare const camera: import('three').PerspectiveCamera;
+    declare const renderer: import('three').WebGLRenderer;
+    declare const controls: any;
+    declare const Math: Math;
+    declare const console: {
+      log(...args: any[]): void;
+      error(...args: any[]): void;
+      warn(...args: any[]): void;
+    };
+  `
+
+  monaco.languages.typescript.javascriptDefaults.addExtraLib(
+    threeJsGlobals,
+    'ts:filename/three-globals.d.ts'
+  )
 })
 
 onBeforeUnmount(() => {
@@ -159,6 +211,48 @@ const formatCode = () => {
   font-weight: 500;
 }
 
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.save-status.saved {
+  color: #42b883;
+  background-color: rgba(66, 184, 131, 0.1);
+}
+
+.save-status.saving {
+  color: #ffa500;
+  background-color: rgba(255, 165, 0, 0.1);
+}
+
+.save-status.unsaved {
+  color: #999;
+  background-color: rgba(153, 153, 153, 0.1);
+}
+
+.status-icon {
+  font-size: 0.9rem;
+}
+
+.status-icon.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .toolbar-right {
   display: flex;
   gap: 8px;
@@ -205,6 +299,17 @@ const formatCode = () => {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
 @media (max-width: 768px) {
