@@ -221,24 +221,26 @@ const handleSnippetCopied = (snippet) => {
     <!-- Right side Code tab: Interactive Editor (replaces static code view) -->
     <template #code>
       <div class="editor-wrapper">
-        <CodeEditor
-          ref="editorRef"
-          v-model="userCode"
-          title="Interactive Code Editor - Edit & Run!"
-          @run="handleRun"
-          @reset="handleReset"
-          @toggle-snippets="handleToggleSnippets"
-        />
+        <div class="editor-container-wrapper">
+          <CodeEditor
+            ref="editorRef"
+            v-model="userCode"
+            title="Interactive Code Editor - Edit & Run!"
+            @run="handleRun"
+            @reset="handleReset"
+            @toggle-snippets="handleToggleSnippets"
+          />
 
-        <!-- Snippet Browser Sidebar -->
-        <transition name="slide-left">
-          <div v-if="showSnippets" class="snippet-sidebar">
-            <SnippetBrowser
-              @insert-snippet="handleInsertSnippet"
-              @snippet-copied="handleSnippetCopied"
-            />
-          </div>
-        </transition>
+          <!-- Snippet Browser Sidebar -->
+          <transition name="slide-left">
+            <div v-if="showSnippets" class="snippet-sidebar">
+              <SnippetBrowser
+                @insert-snippet="handleInsertSnippet"
+                @snippet-copied="handleSnippetCopied"
+              />
+            </div>
+          </transition>
+        </div>
       </div>
     </template>
   </ChapterLayout>
@@ -246,27 +248,35 @@ const handleSnippetCopied = (snippet) => {
 
 <style scoped>
 .editor-wrapper {
-  position: relative;
   height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.editor-wrapper > * {
+.editor-container-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-container-wrapper > .code-editor {
   flex: 1;
   min-width: 0;
 }
 
 .snippet-sidebar {
   position: absolute;
-  top: 0;
+  top: 52px; /* Height of the toolbar - adjust if toolbar height changes */
   right: 0;
   bottom: 0;
   width: 400px;
   background-color: #1e1e1e;
   box-shadow: -4px 0 8px rgba(0, 0, 0, 0.3);
   z-index: 10;
+  border-top: 1px solid #3e3e42;
 }
 
 /* Transitions */

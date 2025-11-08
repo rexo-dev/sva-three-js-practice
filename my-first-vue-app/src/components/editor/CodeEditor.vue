@@ -1,6 +1,6 @@
 <template>
   <div class="code-editor">
-    <div class="editor-toolbar">
+    <div class="editor-toolbar" ref="toolbarRef">
       <div class="toolbar-left">
         <span class="editor-title">{{ title }}</span>
         <transition name="fade">
@@ -74,6 +74,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'run', 'reset', 'toggle-snippets'])
 
 const editorContainer = ref(null)
+const toolbarRef = ref(null)
 const saveStatus = ref('saved') // 'saved', 'saving', 'unsaved'
 let editor = null
 let saveStatusTimeout = null
@@ -237,8 +238,13 @@ const insertTextAtCursor = (text) => {
   }
 }
 
+const getToolbarHeight = () => {
+  return toolbarRef.value ? toolbarRef.value.offsetHeight : 0
+}
+
 defineExpose({
-  insertTextAtCursor
+  insertTextAtCursor,
+  getToolbarHeight
 })
 </script>
 
